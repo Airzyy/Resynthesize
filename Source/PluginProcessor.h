@@ -35,6 +35,7 @@ public:
 
     juce::AudioProcessorValueTreeState parameters;
     bool importWavetable(const juce::File& file, juce::String& error);
+    void selectBuiltinWave(int type);
     juce::String getWavetableName() const;
     std::array<float, tableSize> getWaveformSnapshot() const;
 
