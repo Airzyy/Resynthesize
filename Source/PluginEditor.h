@@ -12,6 +12,8 @@ public:
 
     void paint(juce::Graphics&) override;
     void resized() override;
+    void mouseDown(const juce::MouseEvent& event) override;
+    void mouseDrag(const juce::MouseEvent& event) override;
 
 private:
     bool isInterestedInFileDrag(const juce::StringArray& files) override;
@@ -21,7 +23,7 @@ private:
 
     ResynthesisAudioProcessor& processor;
     juce::TextButton importButton { "LOAD WAVETABLE" };
-    juce::ComboBox waveChoice;
+    juce::ComboBox waveChoice, stereoChoice;
     juce::Label title;
     juce::Label tableName;
     juce::Slider shift, transpose, smooth, phase, cepstrum, mix;
