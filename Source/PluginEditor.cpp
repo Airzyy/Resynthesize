@@ -43,6 +43,16 @@ ResynthesisAudioProcessorEditor::ResynthesisAudioProcessorEditor(ResynthesisAudi
             processor.selectBuiltinWave(waveChoice.getSelectedItemIndex());
     };
     addAndMakeVisible(waveChoice);
+    stereoChoice.addItemList(juce::StringArray { "STEREO", "MID", "SIDE", "MID + SIDE" }, 1);
+    stereoChoice.setSelectedId(1, juce::dontSendNotification);
+    stereoChoice.setColour(juce::ComboBox::backgroundColourId, panel);
+    stereoChoice.setColour(juce::ComboBox::textColourId, juce::Colours::white);
+    stereoChoice.onChange = [this]
+    {
+        if (auto* parameter = processor.parameters.getParameter("stereo"))
+            parameter->setValueNotifyingHost(parameter->convertTo0to1(static_cast<float>(stereoChoice.getSelectedItemIndex())));
+    };
+    addAndMakeVisible(stereoChoice);
 
     tableName.setText(processor.getWavetableName(), juce::dontSendNotification);
     tableName.setColour(juce::Label::textColourId, juce::Colours::white);
@@ -98,6 +108,11 @@ void ResynthesisAudioProcessorEditor::paint(juce::Graphics& g)
     g.setColour(juce::Colour(0xff424242));
     g.drawLine(274, 211, 274, 388, 1.0f);
     g.drawLine(184, 300, 364, 300, 1.0f);
+    const float xyX = processor.parameters.getRawParameterValue("xyX")->load();
+    const float xyY = processor.parameters.getRawParameterValue("xyY")->load();
+    g.setColour(orange);
+    g.fillEllipse(130.0f + xyX * 288.0f - 7.0f, 157.0f + (1.0f - xyY) * 282.0f - 7.0f, 14.0f, 14.0f);
+
     g.setColour(juce::Colours::white.withAlpha(0.55f));
     g.setFont(juce::Font(juce::FontOptions(15.0f)));
     g.drawText("PHASE", 220, 157, 110, 26, juce::Justification::centred);
@@ -155,7 +170,26 @@ void ResynthesisAudioProcessorEditor::resized()
     mix.setBounds(260, 460, 70, 160);
     lock.setBounds(245, 470, 75, 25);
     infinite.setBounds(245, 585, 75, 25);
+    stereoChoice.setBounds(218, 645, 150, 24);
     status.setBounds(140, 670, 320, 18);
+}
+
+void ResynthesisAudioProcessorEditor::mouseDown(const juce::MouseEvent& event)
+{
+    mouseDrag(event);
+}
+
+void ResynthesisAudioProcessorEditor::mouseDrag(const juce::MouseEvent& event)
+{
+    const juce::Rectangle<float> pad(124.0f, 151.0f, 300.0f, 296.0f);
+    if (!pad.contains(event.position)) return;
+    const float x = juce::jlimit(0.0f, 1.0f, (event.position.x - pad.getX()) / pad.getWidth());
+    const float y = juce::jlimit(0.0f, 1.0f, 1.0f - (event.position.y - pad.getY()) / pad.getHeight());
+    if (auto* parameter = processor.parameters.getParameter("xyX"))
+        parameter->setValueNotifyingHost(x);
+    if (auto* parameter = processor.parameters.getParameter("xyY"))
+        parameter->setValueNotifyingHost(y);
+    repaint();
 }
 
 bool ResynthesisAudioProcessorEditor::isInterestedInFileDrag(const juce::StringArray& files)
