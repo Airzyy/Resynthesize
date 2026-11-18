@@ -1,6 +1,7 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 #include <cmath>
+#include <cstring>
 
 namespace
 {
@@ -187,24 +188,43 @@ bool ResynthesisAudioProcessor::importWavetable(const juce::File& file, juce::St
     return true;
 }
 
+void ResynthesisAudioProcessor::selectBuiltinWave(int type)
+{
+    if (type >= 0 && type <= 4)
+    {
+        makeBuiltinTable(type);
+        parameters.getParameterAsValue("wave") = type;
+    }
+}
+
 juce::String ResynthesisAudioProcessor::getWavetableName() const { return wavetableName; }
 std::array<float, ResynthesisAudioProcessor::tableSize> ResynthesisAudioProcessor::getWaveformSnapshot() const { return wavetable; }
 
 void ResynthesisAudioProcessor::getStateInformation(juce::MemoryBlock& dest)
 {
     auto state = parameters.copyState();
-    juce::MemoryOutputStream stream(dest, false);
-    stream.writeInt(tableSize);
-    for (float v : wavetable) stream.writeFloat(v);
-    stream.writeString(wavetableName);
-    if (auto xml = state.createXml()) copyXmlToBinary(*xml, dest);
+    if (auto xml = state.createXml())
+    {
+        xml->setAttribute("wavetableName", wavetableName);
+        xml->setAttribute("wavetableData", juce::Base64::toBase64(wavetable.data(), sizeof(float) * wavetable.size()));
+        copyXmlToBinary(*xml, dest);
+    }
 }
 
 void ResynthesisAudioProcessor::setStateInformation(const void* data, int size)
 {
     if (auto xml = getXmlFromBinary(data, size))
+    {
         if (xml->hasTagName(parameters.state.getType()))
+        {
             parameters.replaceState(juce::ValueTree::fromXml(*xml));
+            const auto encoded = xml->getStringAttribute("wavetableData");
+            juce::MemoryBlock decoded;
+            if (decoded.fromBase64Encoding(encoded) && decoded.getSize() == sizeof(float) * wavetable.size())
+                std::memcpy(wavetable.data(), decoded.getData(), decoded.getSize());
+            wavetableName = xml->getStringAttribute("wavetableName", "Sine");
+        }
+    }
 }
 
 juce::AudioProcessorEditor* ResynthesisAudioProcessor::createEditor()
