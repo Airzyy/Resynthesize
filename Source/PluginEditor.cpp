@@ -27,12 +27,22 @@ ResynthesisAudioProcessorEditor::ResynthesisAudioProcessorEditor(ResynthesisAudi
                 {
                     juce::String error;
                     if (!processor.importWavetable(file, error)) status.setText(error, juce::dontSendNotification);
-                    else status.setText("Loaded: " + processor.getWavetableName(), juce::dontSendNotification);
+                    else { status.setText("Loaded: " + processor.getWavetableName(), juce::dontSendNotification); waveChoice.setSelectedId(6, juce::dontSendNotification); }
                     repaint();
                 }
             });
     };
     addAndMakeVisible(importButton);
+    waveChoice.addItemList(juce::StringArray { "SINE", "SAW", "SQUARE", "TRIANGLE", "NOISE", "IMPORTED" }, 1);
+    waveChoice.setSelectedId(1, juce::dontSendNotification);
+    waveChoice.setColour(juce::ComboBox::backgroundColourId, panel);
+    waveChoice.setColour(juce::ComboBox::textColourId, juce::Colours::white);
+    waveChoice.onChange = [this]
+    {
+        if (waveChoice.getSelectedItemIndex() <= 4)
+            processor.selectBuiltinWave(waveChoice.getSelectedItemIndex());
+    };
+    addAndMakeVisible(waveChoice);
 
     tableName.setText(processor.getWavetableName(), juce::dontSendNotification);
     tableName.setColour(juce::Label::textColourId, juce::Colours::white);
@@ -136,6 +146,7 @@ void ResynthesisAudioProcessorEditor::resized()
     title.setBounds(105, 16, 330, 40);
     importButton.setBounds(445, 77, 54, 52);
     tableName.setBounds(150, 65, 250, 18);
+    waveChoice.setBounds(145, 78, 250, 30);
     shift.setBounds(49, 150, 54, 143);
     transpose.setBounds(49, 300, 54, 143);
     smooth.setBounds(444, 300, 54, 143);
@@ -162,7 +173,10 @@ void ResynthesisAudioProcessorEditor::filesDropped(const juce::StringArray& file
     if (!processor.importWavetable(juce::File(files[0]), error))
         status.setText(error, juce::dontSendNotification);
     else
+    {
         status.setText("Loaded: " + processor.getWavetableName(), juce::dontSendNotification);
+        waveChoice.setSelectedId(6, juce::dontSendNotification);
+    }
     repaint();
 }
 
